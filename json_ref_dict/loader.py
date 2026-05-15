@@ -18,13 +18,8 @@ JSONSchema = Dict[str, Any]
 Parser = Callable[[IO], JSONSchema]
 DocumentLoader = Callable[[str], JSONSchema]
 
-try:
-    import yaml
-
-    CONTENT_PARSER: Parser = yaml.safe_load
-except ImportError:  # pragma: no cover
-    CONTENT_PARSER = json.load  # pragma: no cover
-
+import yaml
+CONTENT_PARSER: Parser = yaml.safe_load
 
 class Loader:
     """Document loader singleton.
@@ -126,22 +121,10 @@ def _read_document_content(base_uri: str) -> Dict[str, Any]:
 
 def _get_loader(conn) -> Callable:
     """Identify the best loader based on connection."""
-    content_type = _get_content_type(conn)
+    content_type = mimetypes.guess_type(conn.url)[0] or ""
     if "json" in content_type:
         return json.load
-    return CONTENT_PARSER  # Fall back to default (yaml if installed)
-
-
-def _get_content_type(conn) -> str:
-    """Pull out mime type from a connection.
-    Prefer explicit header if available, otherwise guess from url.
-    """
-    content_type = mimetypes.guess_type(conn.url)[0] or ""
-    if hasattr(conn, "getheaders"):
-        content_type = dict(conn.getheaders()).get("Content-Type", content_type)
-    msg = Message()
-    msg['content-type'] = content_type
-    return msg.get_content_type()
+    return CONTENT_PARSER  # Fall back to default (yaml)
 
 # Can possibly be hotswitched by patching.
 loader: Loader = Loader(default_get_document)
