@@ -1,4 +1,4 @@
-import cgi
+from email.message import Message
 import os
 import pathlib
 import posixpath
@@ -139,8 +139,9 @@ def _get_content_type(conn) -> str:
     content_type = mimetypes.guess_type(conn.url)[0] or ""
     if hasattr(conn, "getheaders"):
         content_type = dict(conn.getheaders()).get("Content-Type", content_type)
-    return cgi.parse_header(content_type)[0]
-
+    msg = Message()
+    msg['content-type'] = content_type
+    return msg.get_content_type()
 
 # Can possibly be hotswitched by patching.
 loader: Loader = Loader(default_get_document)
